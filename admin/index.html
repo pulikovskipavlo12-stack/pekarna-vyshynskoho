@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Адмін-панель — Пекарня Вишинського</title>
+</head>
+<body>
+  <h1>Адмін-панель</h1>
+
+  <h2>Товари</h2>
+
+  <label>Назва товару:</label><br>
+  <input type="text" id="name"><br><br>
+
+  <label>Ціна:</label><br>
+  <input type="number" id="price"><br><br>
+
+  <button onclick="addProduct()">Додати товар</button>
+
+  <div id="products"></div>
+
+  <script>
+    function addProduct() {
+      const name = document.getElementById("name").value;
+      const price = document.getElementById("price").value;
+
+      if (!name || !price) {
+        alert("Заповни назву та ціну");
+        return;
+      }
+
+      const product = document.createElement("p");
+      product.textContent = name + " — " + price + " грн";
+      document.getElementById("products").appendChild(product);
+
+      document.getElementById("name").value = "";
+      document.getElementById("price").value = "";
+    }
+  </script>
+</body>
+</html>
