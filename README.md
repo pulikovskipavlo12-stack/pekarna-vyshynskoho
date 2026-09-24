@@ -1,13 +1,10 @@
-# Пекарня Вишинського — Render
+# Пекарня Вишинського — фінальна версія
 
-Build command: `npm install`
-Start command: `npm start`
+Render: Build `npm install`, Start `npm start`.
 
-Environment variables:
-- ADMIN_USER — логін адмінки
+Environment Variables:
 - ADMIN_PASSWORD — пароль адмінки
-- TELEGRAM_BOT_TOKEN — для наступного кроку
-- TELEGRAM_CHAT_ID — для наступного кроку
+- TELEGRAM_BOT_TOKEN — токен існуючого Telegram-бота, тільки в Render
+- TELEGRAM_CHAT_ID — числовий chat_id отримувача замовлень
 
-Адмінка: `/admin/`
-Health: `/health`
+Увага: JSON-файли на Render не гарантують постійне збереження даних після redeploy/restart. Для бойової експлуатації підключіть Persistent Disk або зовнішню БД.

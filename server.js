@@ -1,16 +1,14 @@
-const express = require("express");
-const path = require("path");
-
-const app = express();
-
-const PORT = process.env.PORT || 3000;
-
-app.use(express.static(path.join(__dirname, "public")));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-app.listen(PORT, () => {
-  console.log(`Пекарня Вишинського запущена на порту ${PORT}`);
-});
+const express=require('express');const path=require('path');const fs=require('fs');const crypto=require('crypto');
+const app=express(),PORT=process.env.PORT||3000,DATA=path.join(__dirname,'data');
+const pf=path.join(DATA,'products.json'),of=path.join(DATA,'orders.json');app.use(express.json({limit:'1mb'}));app.use(express.static(path.join(__dirname,'public')));
+const read=(f,d)=>{try{return JSON.parse(fs.readFileSync(f,'utf8'))}catch{return d}};const write=(f,v)=>{fs.mkdirSync(DATA,{recursive:true});fs.writeFileSync(f,JSON.stringify(v,null,2))};const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function auth(req,res,next){if(!process.env.ADMIN_SESSION||req.headers.authorization!==`Bearer ${process.env.ADMIN_SESSION}`)return res.status(401).json({error:'Не авторизовано'});next()}
+app.get('/api/products',(q,r)=>r.json(read(pf,[])));
+app.post('/api/orders',async(req,res)=>{const b=req.body||{};if(!b.name||!b.phone||!Array.isArray(b.items)||!b.items.length)return res.status(400).json({error:'Заповніть ім’я, телефон і додайте товар.'});const o={id:id(),name:b.name,phone:b.phone,delivery:b.delivery||'Самовивіз',address:b.address||'',comment:b.comment||'',items:b.items,total:Number(b.total)||0,status:'Нове',createdAt:new Date().toISOString()};const a=read(of,[]);a.unshift(o);write(of,a);let sent=false;if(process.env.TELEGRAM_BOT_TOKEN&&process.env.TELEGRAM_CHAT_ID){const msg=`🥖 НОВЕ ЗАМОВЛЕННЯ — ПЕКАРНЯ ВИШИНСЬКОГО\n\n👤 ${o.name}\n📞 ${o.phone}\n🚚 ${o.delivery}${o.address?`\n📍 ${o.address}`:''}${o.comment?`\n💬 ${o.comment}`:''}\n\n🛒 ${o.items.map(i=>`• ${i.name} × ${i.qty} — ${Number(i.price)*Number(i.qty)} грн`).join('\n')}\n\n💰 Разом: ${o.total} грн\n🆔 ${o.id}`;try{const x=await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text:msg})});sent=x.ok}catch{}}res.json({ok:true,orderId:o.id,telegramSent:sent})});
+app.post('/api/admin/login',(req,res)=>{if(req.body?.password!==(process.env.ADMIN_PASSWORD||'change-me'))return res.status(401).json({error:'Неправильний пароль'});const s=crypto.randomBytes(24).toString('hex');process.env.ADMIN_SESSION=s;res.json({token:s})});
+app.get('/api/admin/orders',auth,(q,r)=>r.json(read(of,[])));
+app.patch('/api/admin/orders/:id',auth,(req,res)=>{const a=read(of,[]),o=a.find(x=>x.id===req.params.id);if(!o)return res.status(404).json({error:'Замовлення не знайдено'});o.status=req.body.status||o.status;write(of,a);res.json(o)});
+app.post('/api/admin/products',auth,(req,res)=>{const a=read(pf,[]),p={id:id(),name:String(req.body.name||'Новий товар'),price:Number(req.body.price)||0,category:String(req.body.category||'Випічка'),image:String(req.body.image||'')};a.push(p);write(pf,a);res.json(p)});
+app.put('/api/admin/products/:id',auth,(req,res)=>{const a=read(pf,[]),p=a.find(x=>x.id===req.params.id);if(!p)return res.status(404).json({error:'Товар не знайдено'});Object.assign(p,{name:String(req.body.name??p.name),price:Number(req.body.price??p.price)||0,category:String(req.body.category??p.category),image:String(req.body.image??p.image)});write(pf,a);res.json(p)});
+app.delete('/api/admin/products/:id',auth,(req,res)=>{write(pf,read(pf,[]).filter(x=>x.id!==req.params.id));res.json({ok:true})});
+app.get('/admin',(q,r)=>r.sendFile(path.join(__dirname,'public','admin.html')));app.get('*',(q,r)=>r.sendFile(path.join(__dirname,'public','index.html')));app.listen(PORT,()=>console.log('Pekarna server on '+PORT));
